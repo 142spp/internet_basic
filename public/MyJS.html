@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <style>
+        h2 {
+            color:red; 
+            text-align: center;
+            text-size-adjust: 20px;
+        }
+
+        h3 {
+            color:tomato;
+        }
+
+        #disres {
+            background-color:lightgoldenrodyellow;
+        }
+
+        div {
+            padding: 10px;
+            margin: 10px;
+        }
+
+        p {
+            background-color: wheat;
+        }
+
+        .class1 {
+            color:springgreen;
+            text-align: right;
+        }
+
+        button {
+            margin-bottom:10px;
+            text-align: center;
+            border-radius: 10%;
+            border: 1px solid black;
+        }
+        
+        .button1 {
+            background-color: white;
+        }
+        .button2 {
+            background-color: thistle;
+        }
+        .button3 {
+            background-color: violet;
+        }
+
+        label {
+            margin:10px;
+            
+        }
+
+        input {
+            margin:10px;
+            border: 1px solid black;
+        }
+
+        table {
+            width: 70%;
+            border:2px solid black;
+            float: left;
+        }
+        th {
+            border:1px solid black;
+            text-align:center;
+            background-color: pink;
+        }   
+        td {
+            border:1px solid black;
+            text-align: left;
+        }
+
+        aside {
+            width: 30%;
+            background-color: lightskyblue;
+            float:right;
+            text-align: center;
+        }
+
+    </style>
+    </head>
+<body>
+
+<h2>각 국가별 사건사고 목록</h2>  
+<h3 class="class1">202055575 이동근</h3>
+
+<button class="button1" onclick="displayResponse()">사건사고 리스트</button>  <!--각 버튼에 함수 연결-->
+<button class="button2" onclick="displayVideo()">사건사고 동영상</button>
+<button class="button3" onclick="reset()">리셋</button>
+
+<script>
+    var condition=0  //초기상태
+    var xhr = new XMLHttpRequest();
+    xhr.withCredentials = true;
+    xhr.addEventListener("readystatechange", function () {
+        if (this.readyState === 4&& condition == 1 ) {   //페이지가 로딩되고 리스폰스받은것이 video자료 인 경우
+            console.log(this.responseText);
+            var restxt=this.responseText;
+            var parsed=JSON.parse(restxt);      //json 자료를 파싱함
+            var disvideo=document.getElementById("disvideo");
+
+            disvideo.innerHTML="";    //페이지 상의 비디오 초기화
+
+            if(parsed.items.length == 0){     //검색한 결과 영상이 없을경우엔 알러트 출력-(오류 처리)
+                alert("해당하는 자료(영상)가 없습니다.")
+            }
+            console.log(parsed.items.length);
+
+            for(i in parsed.items){
+                var cur=parsed.items[i].id.videoId;   //비디오의 정보중 videoid만을 뽑음
+                var cur_str=JSON.stringify(cur);
+                disvideo.innerHTML += "<iframe width=\"560\" height=\"315\" src=http://www.youtube.com/embed/" + cur +"></iframe>";   //뽑은 videoid 로 iframe 을 활용해 페이지에서 비디오를 재생시킴
+            }
+
+            
+
+        }
+
+        if (this.readyState ===4 && condition==2) {   //페이지가 로딩되고 리스폰스받은것이 text자료인 경우
+            console.log(this.responseText);
+            var restxt=this.responseText;
+            var xmlParser = new DOMParser();  //xml 파서
+            var disres=document.getElementById("disres");
+            var xmlDoc=xmlParser.parseFromString(restxt, "text/xml");   //파싱
+
+            if(xmlDoc.getElementsByTagName("news").length == 0){   //리스폰스 받은 자료가 아무내용도 포함하지 않을 경우 오류메세지 출력
+                alert("해당되는 국가가 존재하지 않습니다.");
+                
+            }
+            console.log(xmlDoc.getElementsByTagName("news").length);
+
+            disres.innerHTML="";   //페이지 테이블 초기화
+            disres.innerHTML += "<th>"+ xmlDoc.getElementsByTagName("name")[0].childNodes[0].nodeValue +"</th>";  //테이블 헤드를 국가명으로 정함
+            for(i in xmlDoc.getElementsByTagName("news")){   //xml문서의 new 태그만을 불러와 출력
+                disres.innerHTML += "<td>"+ xmlDoc.getElementsByTagName("news")[i].childNodes[0].nodeValue +"</td>";
+            }
+            
+            
+            
+            
+        }
+    });
+
+    function displayVideo(){  //동영상을 불러오는 함수
+        condition=1;   //리스폰스 받을 값을 정하기 위해 상태를 바꿔줌
+        var url = "http://localhost:3000/video";  //자바스크립트문서에서 따로 처리
+        var countryEnName = document.getElementById('countryEnName').value;   //입력받은 값
+
+        url = url + "?" + "q=" + countryEnName + " accident";   //키워드를 국가명+accident로 지정
+        console.log(url)
+        
+        xhr.open("GET", url);
+        xhr.send();
+
+    }
+
+    function displayResponse(){   //텍스트를 불러오는 함수
+        condition=2;   
+
+        var url = "http://localhost:3000/accident";
+        var countryEnName = document.getElementById('countryEnName').value;   //입력받은값을 자바스크립트로전달
+
+        url = url + "?" + "countryEnName=" + countryEnName ;   //영문국가명을 그대로 전달
+        console.log(url)
+
+        xhr.open("GET", url);
+        xhr.send();
+
+    }
+
+    function reset(){   //항목들을 초기화 시키는 함수
+        condition=0;   //상태 또한 초기화 시켜줌
+        var disres=document.getElementById("disres");
+        var disvideo=document.getElementById("disvideo");
+        disres.innerHTML="";
+        disvideo.innerHTML="";   //페이지 내에 항목들을 null 형태로 바꿔 초기화 시킴
+        document.getElementById("countryEnName").value=null;   //인풋값 또한 초기화
+
+    }
+
+</script>
+<form name="myform">
+    <label for='countryEnName'> 영문국가명(첫글자 반드시 대문자):</label>   <!--영문 국가명 입력받는 란-->
+    <input type="text" id='countryEnName' name='countryEnName' value='Ghana'><br>
+</form>
+
+<table id="disres"></table>  <!--사건사고 리스트가 테이블 형태로 출력됨-->
+<aside id="disvideo"></aside>   <!--동영상이 사이드에 배치됨-->
+
+</body>
+</html>
